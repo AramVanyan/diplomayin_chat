@@ -1,15 +1,19 @@
-package kursayin.team0.frames;
+package diplomayin.frames;
 
 //    tcp://localhost:9001
 
 import aca.proto.ChatMsg;
+import diplomayin.client.Client;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.image.Image;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
-import kursayin.team0.client.Client;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -152,9 +156,11 @@ public final class ChatStage {
         mainLayout.setPadding(new Insets(15));
         mainLayout.getChildren().addAll(serverStatusField, messagesDisplayArea, messageSendField, buttonAndDirectSendFieldLayout);
 
+        Image image = new Image("/images/messenger-xxl.png");
+        primaryStage.getIcons().add(image);
+
         Scene scene = new Scene(mainLayout, width, height);
         this.primaryStage.setScene(scene);
-
     }
 
 

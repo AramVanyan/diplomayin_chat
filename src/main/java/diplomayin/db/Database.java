@@ -1,4 +1,4 @@
-package kursayin.team0.db;
+package diplomayin.db;
 
 import aca.proto.ChatMsg;
 
@@ -14,7 +14,7 @@ public final class Database {
     private Comparator<ChatMsg> comparator = Comparator.comparingLong(ChatMsg::getTime);
 
     public void createConnection() throws SQLException {
-        connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/kursayin", "root", "root");
+        connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/chat_db", "root", "root");
     }
 
     public boolean isUsernameFree(String username) throws SQLException {

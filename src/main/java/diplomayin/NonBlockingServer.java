@@ -1,6 +1,7 @@
-package kursayin.team0;
+package diplomayin;
 
 import aca.proto.ChatMsg;
+import diplomayin.util.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,7 +13,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
 
-import static kursayin.team0.util.Util.*;
 import static java.nio.channels.SelectionKey.*;
 
 
@@ -57,10 +57,10 @@ public class NonBlockingServer {
                             socketChannel.configureBlocking(false);
                             ChatMsg serverStatus = ChatMsg.newBuilder()
                                     .setTime(System.currentTimeMillis())
-                                    .setServerStatus(ChatMsg.ServerStatus.newBuilder().setStatus("Server has been created by team0 (Minas, Edgar, Arpine)").build())
+                                    .setServerStatus(ChatMsg.ServerStatus.newBuilder().setStatus("Secure chat").build())
                                     .build();
                             ByteBuffer buffer = ByteBuffer.allocate(1024);
-                            write(buffer, serverStatus);
+                            Util.write(buffer, serverStatus);
                             buffer.flip();
                             socketChannel.write(buffer);
                             socketChannel.register(selector, OP_READ);
@@ -73,7 +73,7 @@ public class NonBlockingServer {
                             try {
                                 socketChannel.read(buffer);
                                 buffer.flip();
-                                ChatMsg message = read(buffer);
+                                ChatMsg message = Util.read(buffer);
 
                                 if (message != null) {
                                     if (message.hasUserLoggedIn()) {
@@ -123,7 +123,7 @@ public class NonBlockingServer {
 
                                 }
 
-                                write(buffer, response);
+                                Util.write(buffer, response);
                                 buffer.flip();
 
                                 if (!response.hasUserSentPrivateMessage()) {

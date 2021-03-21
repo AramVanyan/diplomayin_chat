@@ -1,5 +1,6 @@
-package kursayin.team0.frames;
+package diplomayin.frames;
 
+import diplomayin.db.Database;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -7,12 +8,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import kursayin.team0.client.Client;
-import kursayin.team0.db.Database;
-import kursayin.team0.regexes.URLRegEx;
+import diplomayin.client.Client;
+import diplomayin.regexes.URLRegEx;
 
 import java.sql.SQLException;
 import java.util.concurrent.ExecutorService;
@@ -68,6 +69,9 @@ public final class LoginStage extends Application {
         layout = new VBox(7);
         layout.setPadding(insets);
         layout.getChildren().addAll(urlLabel, urlField, usernameLabel, usernameField, layoutForButton);
+
+        Image image = new Image("/images/messenger-xxl.png");
+        primaryStage.getIcons().add(image);
 
         scene = new Scene(layout, 300, 180);
         primaryStage.setScene(scene);

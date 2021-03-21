@@ -1,11 +1,11 @@
-package kursayin.team0.client;
+package diplomayin.client;
 
 import aca.proto.ChatMsg;
 import com.google.protobuf.InvalidProtocolBufferException;
+import diplomayin.db.Database;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import kursayin.team0.db.Database;
-import kursayin.team0.frames.ChatStage;
+import diplomayin.frames.ChatStage;
 
 import java.io.EOFException;
 import java.io.IOException;

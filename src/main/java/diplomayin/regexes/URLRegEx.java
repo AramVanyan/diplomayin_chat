@@ -1,4 +1,4 @@
-package kursayin.team0.regexes;
+package diplomayin.regexes;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

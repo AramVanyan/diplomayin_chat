@@ -1,7 +1,7 @@
-package kursayin.team0;
+package diplomayin;
 
+import diplomayin.frames.LoginStage;
 import javafx.application.Application;
-import kursayin.team0.frames.LoginStage;
 
 public class NonBlockingClient {
     public static void main(String[] args) {

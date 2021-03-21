@@ -1,4 +1,4 @@
-package kursayin.team0.enums;
+package diplomayin.enums;
 
 import javafx.scene.paint.Color;
 

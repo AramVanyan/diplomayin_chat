@@ -1,4 +1,4 @@
-package kursayin.team0.enums;
+package diplomayin.enums;
 
 import javafx.geometry.Insets;
 import javafx.scene.layout.Background;
