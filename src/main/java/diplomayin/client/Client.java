@@ -1,14 +1,19 @@
 package diplomayin.client;
 
 import aca.proto.ChatMsg;
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
+import diplomayin.client.AES256.AES256;
+import diplomayin.client.RSA.RSA;
 import diplomayin.db.Database;
+import diplomayin.frames.ChatStage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import diplomayin.frames.ChatStage;
 
+import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -24,7 +29,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static java.nio.channels.SelectionKey.*;
+import static java.nio.channels.SelectionKey.OP_CONNECT;
+import static java.nio.channels.SelectionKey.OP_READ;
 
 public class Client implements Runnable {
     private final Database database;
@@ -33,10 +39,11 @@ public class Client implements Runnable {
     private static final Logger LOG = LoggerFactory.getLogger(Client.class);
     private SocketChannel socketChannel;
     private Selector selector;
-    private ByteBuffer msgToRead = ByteBuffer.allocate(1035);
+    private ByteBuffer msgToRead = ByteBuffer.allocate(3035);
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private final InetSocketAddress inetSocketAddress;
-    private ByteBuffer msgToWrite = ByteBuffer.allocate(1035);
+    private ByteBuffer msgToWrite = ByteBuffer.allocate(3035);
+    private RSA rsa = new RSA();
 
     public Client(String host, int port, String username, ChatStage chatStage, Database database) {
 
@@ -154,11 +161,11 @@ public class Client implements Runnable {
                 .setTime(System.currentTimeMillis())
                 .setUserSentGlobalMessage(
                         ChatMsg.UserSentGlobalMessage.newBuilder()
-                                .setMessage(message)
+                                .setMessage(AES256.encrypt(message))
                                 .setUserName(username)
                                 .build())
                 .build();
-        boolean success = serialize(chatMsg, msgToWrite);
+        boolean success = serialize(chatMsg, msgToWrite, false, null);
         msgToWrite.flip();
         if (success) {
             try {
@@ -172,13 +179,18 @@ public class Client implements Runnable {
         }
     }
 
-    public void login() {
+    public void login() throws IOException {
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream(bos);
+        oos.writeObject(rsa.getPublicKey());
+        oos.flush();
+        byte [] publicKeyBytes = bos.toByteArray();
         ChatMsg chatMsg = ChatMsg.newBuilder()
                 .setTime(System.currentTimeMillis())
                 .setUserLoggedIn(ChatMsg.UserLoggedIn.newBuilder().setUserName(username))
                 .build();
 
-        boolean success = serialize(chatMsg, msgToWrite);
+        boolean success = serialize(chatMsg, msgToWrite, true, publicKeyBytes);
         msgToWrite.flip();
         if (success) {
             try {
@@ -199,7 +211,7 @@ public class Client implements Runnable {
                 .setTime(System.currentTimeMillis())
                 .setUserLoggedOut(ChatMsg.UserLoggedOut.newBuilder().setUserName(username))
                 .build();
-        boolean success = serialize(chatMsg, msgToWrite);
+        boolean success = serialize(chatMsg, msgToWrite, false, null);
         msgToWrite.flip();
         if (success) {
             try {
@@ -235,7 +247,7 @@ public class Client implements Runnable {
                 LOG.error("Message length is more than 1000 ");
             } else {
                 executor.submit(() -> chatStage.displayMessage(chatMsg.getUserSentGlobalMessage().getUserName(),
-                        chatMsg.getUserSentGlobalMessage().getMessage(), System.currentTimeMillis()));
+                        AES256.decrypt(chatMsg.getUserSentGlobalMessage().getMessage()), System.currentTimeMillis()));
                 LOG.info(chatMsg.getUserSentGlobalMessage().getUserName() + ": " + chatMsg.getUserSentGlobalMessage().getMessage());
             }
         } else if (chatMsg.hasFailure()) {
@@ -254,9 +266,15 @@ public class Client implements Runnable {
         } else if (chatMsg.hasUserSentPrivateMessage()) {
             List<String> names = chatMsg.getUserSentPrivateMessage().getReceiverList();
             if (names.contains(username)) {
-                executor.submit(() -> chatStage.displayMessage(chatMsg.getUserSentPrivateMessage().getSender(),
-                        "pm: " + chatMsg.getUserSentPrivateMessage().getMessage(),
-                        chatMsg.getTime()));
+                executor.submit(() -> {
+                    try {
+                        chatStage.displayMessage(chatMsg.getUserSentPrivateMessage().getSender(),
+                                "pm: " + RSA.decrypt(chatMsg.getUserSentPrivateMessage().getMessage().toByteArray(), rsa.getPrivateKey()),
+                                chatMsg.getTime());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                });
 
                 LOG.info(chatMsg.getUserSentPrivateMessage().getSender() + " pm: " + chatMsg.getUserSentPrivateMessage().getMessage());
             }
@@ -279,11 +297,11 @@ public class Client implements Runnable {
                 .setTime(System.currentTimeMillis())
                 .setUserSentPrivateMessage(ChatMsg.UserSentPrivateMessage.newBuilder()
                         .setSender(username)
-                        .setMessage(message)
+                        .setMessage(ByteString.copyFromUtf8(message))
                         .addAllReceiver(allReceivers))
                 .build();
         msgToWrite.clear();
-        boolean success = serialize(chatMsg, msgToWrite);
+        boolean success = serialize(chatMsg, msgToWrite, false, null);
         msgToWrite.flip();
         if (success) {
             try {
@@ -297,18 +315,20 @@ public class Client implements Runnable {
         }
     }
 
-    private boolean serialize(ChatMsg chatMsg, ByteBuffer buffer) {
+    private boolean serialize(ChatMsg chatMsg, ByteBuffer buffer, boolean isLogin, byte[] bytes) {
         buffer.clear();
         byte[] msgByteArr = chatMsg.toByteArray();
         int msgbytes = 4 + msgByteArr.length;
-
         if (buffer.remaining() < msgbytes) {
             return false;
         }
 
         buffer.putInt(msgByteArr.length);
         buffer.put(msgByteArr);
-
+        if (bytes != null) {
+            buffer.putInt(bytes.length);
+            buffer.put(bytes);
+        }
         return true;
     }
 

@@ -182,7 +182,7 @@ public final class ChatStage {
                         timestamp);
             } else if (message.hasUserSentPrivateMessage()) {
                 displayMessage(message.getUserSentPrivateMessage().getSender(),
-                        "pm: " + message.getUserSentPrivateMessage().getMessage(),
+                        "pm: " + message.getUserSentPrivateMessage().getMessage().toStringUtf8(),
                         timestamp);
             } else if (message.hasUserLoggedIn()) {
                 displayLoginMessage(message.getUserLoggedIn().getUserName(),

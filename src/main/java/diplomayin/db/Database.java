@@ -1,8 +1,13 @@
 package diplomayin.db;
 
 import aca.proto.ChatMsg;
+import com.google.protobuf.ByteString;
+import diplomayin.client.AES256.AES256;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -77,7 +82,7 @@ public final class Database {
         }
         String username = privateMessage.getUserSentPrivateMessage().getSender();
         List<String> receivers = privateMessage.getUserSentPrivateMessage().getReceiverList();
-        String message = privateMessage.getUserSentPrivateMessage().getMessage();
+        String message = AES256.encrypt(privateMessage.getUserSentPrivateMessage().getMessage().toStringUtf8());
         long timestamp = privateMessage.getTime();
         connection.createStatement().execute("INSERT INTO private_messages VALUES (NULL, '" + username +
                 "', '" + String.join(" ", receivers) + "', '" + message + "', " + timestamp + ");");
@@ -129,7 +134,7 @@ public final class Database {
                     .setTime(resultSet.getLong("time"))
                     .setUserSentGlobalMessage(ChatMsg.UserSentGlobalMessage.newBuilder()
                             .setUserName(resultSet.getString("sender"))
-                            .setMessage(resultSet.getString("message")))
+                            .setMessage(AES256.decrypt(resultSet.getString("message"))))
                     .build();
             globalMessages.add(globalMessage);
         }
@@ -148,7 +153,7 @@ public final class Database {
                             .setTime(resultSet.getLong("time"))
                             .setUserSentPrivateMessage(ChatMsg.UserSentPrivateMessage.newBuilder()
                                     .setSender(resultSet.getString("sender"))
-                                    .setMessage(resultSet.getString("message"))
+                                    .setMessage(ByteString.copyFromUtf8(AES256.decrypt(resultSet.getString("message"))))
                                     .addAllReceiver(allReceivers))
                             .build();
                     privateMessages.add(privateMessage);

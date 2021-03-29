@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
+import java.security.PublicKey;
 import java.util.*;
 
 import static java.nio.channels.SelectionKey.*;
@@ -22,6 +23,7 @@ public class NonBlockingServer {
     private static final Logger LOG = LoggerFactory.getLogger(NonBlockingServer.class);
     private static final List<SocketChannel> channels = new ArrayList<>();
     private static final HashMap<String, SocketChannel> channelsMap = new HashMap<>();
+    private static final HashMap<String, PublicKey> publicKeysMap = new HashMap<>();
     private static List<String> directReceivers;
 
     public static void main(String[] args) throws Exception {
@@ -49,7 +51,7 @@ public class NonBlockingServer {
                     Iterator<SelectionKey> iterator = readySet.iterator();
 
                     while (iterator.hasNext()) {
-
+                        PublicKey publicKey = null;
                         SelectionKey key = iterator.next();
 
                         if (key.isAcceptable()) {
@@ -60,7 +62,7 @@ public class NonBlockingServer {
                                     .setServerStatus(ChatMsg.ServerStatus.newBuilder().setStatus("Secure chat").build())
                                     .build();
                             ByteBuffer buffer = ByteBuffer.allocate(1024);
-                            Util.write(buffer, serverStatus);
+                            Util.write(buffer, serverStatus, null);
                             buffer.flip();
                             socketChannel.write(buffer);
                             socketChannel.register(selector, OP_READ);
@@ -74,10 +76,11 @@ public class NonBlockingServer {
                                 socketChannel.read(buffer);
                                 buffer.flip();
                                 ChatMsg message = Util.read(buffer);
-
                                 if (message != null) {
                                     if (message.hasUserLoggedIn()) {
                                         channelsMap.put(message.getUserLoggedIn().getUserName(), socketChannel);
+                                        publicKey = Util.readPublicKey(buffer);
+                                        publicKeysMap.put(message.getUserLoggedIn().getUserName(), publicKey);
                                     }
 
                                     buffer.compact();
@@ -122,8 +125,9 @@ public class NonBlockingServer {
                                     LOG.info("receivers: " + directReceivers);
 
                                 }
+                                if (directReceivers != null) Util.write(buffer, response, publicKeysMap.get(directReceivers.get(0)));
+                                else Util.write(buffer, response, null);
 
-                                Util.write(buffer, response);
                                 buffer.flip();
 
                                 if (!response.hasUserSentPrivateMessage()) {
